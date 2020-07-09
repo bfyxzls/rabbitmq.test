@@ -8,14 +8,13 @@ namespace rabbitmq.test
         static void Main(string[] args)
         {
             //先订阅消息
-            new RabbitMqSubscriber(queue: "lind").Subscribe<UserInfo>((userinfo) =>
+            RabbitMqManager.Subscriber.Subscribe<UserInfo>("lind",(userinfo) =>
             {
                 Console.WriteLine("收到用户信息：" + userinfo.ToString());
             });
 
             //再程序里发布消息
-            RabbitMqPublisher rabbitMqPublisher = new RabbitMqPublisher();
-            rabbitMqPublisher.Publish<UserInfo>("lind", new UserInfo
+            RabbitMqManager.Publisher.Publish("lind", new UserInfo
             {
                 UserID = 1,
                 UserName = "zhangzhanling"

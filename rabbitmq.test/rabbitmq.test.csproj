@@ -40,6 +40,7 @@
       <HintPath>..\packages\RabbitMQ.Client.3.6.9\lib\net45\RabbitMQ.Client.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -52,6 +53,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RabbitMQ\MessageReceivedEventArgs.cs" />
+    <Compile Include="RabbitMQ\RabbitMqManager.cs" />
     <Compile Include="RabbitMQ\RabbitMqPublisher.cs" />
     <Compile Include="RabbitMQ\RabbitMqSubscriber.cs" />
     <Compile Include="RabbitMQ\SerializeMemoryHelper.cs" />

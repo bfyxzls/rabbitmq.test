@@ -1,11 +1,7 @@
-﻿using Newtonsoft.Json;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 
 namespace rabbitmq.test.RabbitMQ
@@ -16,7 +12,7 @@ namespace rabbitmq.test.RabbitMQ
     public class RabbitMqSubscriber
     {
         private readonly string exchangeName;
-        private string queueName = "default";
+        private string queueName;
         private readonly IConnection connection;
         private readonly IModel channel;
 
@@ -45,17 +41,26 @@ namespace rabbitmq.test.RabbitMQ
         /// <summary>
         ///  触发消费行为
         /// </summary>
+        /// <param name="queue">队列名称</param>
         /// <param name="callback">回调方法</param>
-        public void Subscribe<TMessage>(Action<TMessage> callback)
+        public void Subscribe<TMessage>(string queue = null, Action<TMessage> callback = null)
         {
-            if (string.IsNullOrWhiteSpace(exchangeName))//分发模式
+            // 使用自定义的队队
+            if (!string.IsNullOrWhiteSpace(queue))
             {
+                queueName = queue;
+            }
+            if (!string.IsNullOrWhiteSpace(queueName))//分发模式
+            {
+                channel.ExchangeDeclare(exchangeName, "topic");//广播
                 channel.QueueDeclare(
-                    queue: this.queueName,
+                    queue: queueName,
                     durable: false,//持久化
                     exclusive: false, //独占,只能被一个consumer使用
                     autoDelete: false,//自己删除,在最后一个consumer完成后删除它
                     arguments: null);
+                channel.QueueBind(queueName, exchangeName, queueName);
+
             }
             else
             {
@@ -80,10 +85,5 @@ namespace rabbitmq.test.RabbitMQ
 
         }
 
-        public void Subscribe<TMessage>(string topic, Action<TMessage> callback) where TMessage : class, new()
-        {
-            this.queueName = topic;
-            Subscribe<TMessage>(callback);
-        }
     }
 }
