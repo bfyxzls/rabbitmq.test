@@ -52,7 +52,6 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RabbitMQ\MessageReceivedEventArgs.cs" />
     <Compile Include="RabbitMQ\RabbitMqManager.cs" />
     <Compile Include="RabbitMQ\RabbitMqPublisher.cs" />
     <Compile Include="RabbitMQ\RabbitMqSubscriber.cs" />
