@@ -1,10 +1,6 @@
-﻿using Newtonsoft.Json;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 
 namespace rabbitmq.test.RabbitMQ
@@ -15,7 +11,7 @@ namespace rabbitmq.test.RabbitMQ
     public class RabbitMqPublisher
     {
         private string _uri;
-        private readonly string exchangeName = "";
+        private string exchangeName = "";
         private readonly IConnection connection;
         private readonly IModel channel;
         private static object lockObj = new object();
@@ -33,7 +29,7 @@ namespace rabbitmq.test.RabbitMQ
             _uri = uri;
             var factory = new ConnectionFactory()
             {
-                Uri = _uri
+                Uri = new Uri(_uri),
             };
             if (!string.IsNullOrWhiteSpace(exchangeName))
                 this.exchangeName = exchangeName;
@@ -45,14 +41,22 @@ namespace rabbitmq.test.RabbitMQ
             this.channel = connection.CreateModel();
         }
 
+        public void Publish<TMessage>(string queue, TMessage message)
+        {
+            Publish(null, queue, message);
+        }
         /// <summary>
         /// 将消息推送到服务器
         /// </summary>
         /// <typeparam name="TMessage"></typeparam>
         /// <param name="queue"></param>
         /// <param name="message"></param>
-        public void Publish<TMessage>(string queue, TMessage message)
+        public void Publish<TMessage>(string exchange, string queue, TMessage message)
         {
+            if (!string.IsNullOrWhiteSpace(exchange))
+            {
+                exchangeName = exchange;
+            }
             channel.QueueDeclare(queue: queue,//队列名
                                      durable: false,//是否持久化
                                      exclusive: false,//排它性
@@ -65,13 +69,21 @@ namespace rabbitmq.test.RabbitMQ
             channel.BasicPublish(exchange: this.exchangeName, routingKey: queue, basicProperties: null, body: bytes);
         }
 
+        public void PublishFanout<TMessage>(TMessage message)
+        {
+            PublishFanout<TMessage>(null, message);
+        }
         /// <summary>
         /// 广播消息,需要在初始化时为exchangeName赋值
         /// </summary>
         /// <typeparam name="TMessage"></typeparam>
         /// <param name="message"></param>
-        public void Publish<TMessage>(TMessage message)
+        public void PublishFanout<TMessage>(string exchange, TMessage message)
         {
+            if (!string.IsNullOrWhiteSpace(exchange))
+            {
+                exchangeName = exchange;
+            }
             const string ROUTING_KEY = "";
             channel.ExchangeDeclare(this.exchangeName, "fanout");//广播
             var json = SerializeMemoryHelper.JsonSerializer(message);

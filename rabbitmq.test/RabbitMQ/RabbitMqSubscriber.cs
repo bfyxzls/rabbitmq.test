@@ -11,7 +11,7 @@ namespace rabbitmq.test.RabbitMQ
     /// </summary>
     public class RabbitMqSubscriber
     {
-        private readonly string exchangeName;
+        private string exchangeName;
         private string queueName;
         private readonly IConnection connection;
         private readonly IModel channel;
@@ -26,7 +26,7 @@ namespace rabbitmq.test.RabbitMQ
         /// <param name="exchangeName">交换机,有值表示广播模式</param>
         public RabbitMqSubscriber(string uri = "amqp://localhost:5672", string userName = "guest", string password = "guest", string exchangeName = "", string queue = "")
         {
-            var factory = new ConnectionFactory() { Uri = uri };
+            var factory = new ConnectionFactory() { Uri = new Uri(uri) };
             if (!string.IsNullOrWhiteSpace(exchangeName))
                 this.exchangeName = exchangeName;
             if (!string.IsNullOrWhiteSpace(userName))
@@ -38,13 +38,27 @@ namespace rabbitmq.test.RabbitMQ
             this.connection = factory.CreateConnection();
             this.channel = connection.CreateModel();
         }
+
+        public void Subscribe<TMessage>(Action<TMessage> callback = null)
+        {
+            Subscribe(null, null, callback);
+        }
+
+        public void Subscribe<TMessage>(string queue, Action<TMessage> callback = null)
+        {
+            Subscribe(null, queue, callback);
+        }
         /// <summary>
         ///  触发消费行为
         /// </summary>
         /// <param name="queue">队列名称</param>
         /// <param name="callback">回调方法</param>
-        public void Subscribe<TMessage>(string queue = null, Action<TMessage> callback = null)
+        public void Subscribe<TMessage>(string exchange, string queue, Action<TMessage> callback = null)
         {
+            if (!string.IsNullOrWhiteSpace(exchange))
+            {
+                exchangeName = exchange;
+            }
             // 使用自定义的队队
             if (!string.IsNullOrWhiteSpace(queue))
             {
@@ -67,20 +81,21 @@ namespace rabbitmq.test.RabbitMQ
                 //广播模式
                 channel.ExchangeDeclare(this.exchangeName, "fanout");//广播
                 QueueDeclareOk queueOk = channel.QueueDeclare();//每当Consumer连接时，我们需要一个新的，空的queue,如果在声明queue时不指定,那么RabbitMQ会随机为我们选择这个名字
-                string queueName = queueOk.QueueName;//得到RabbitMQ帮我们取了名字
-                channel.QueueBind(queueName, this.exchangeName, string.Empty);//不需要指定routing key，设置了fanout,指了也没有用.
+                queueName = queueOk.QueueName;//得到RabbitMQ帮我们取了名字
+                channel.QueueBind(queueName, exchangeName, string.Empty);//不需要指定routing key，设置了fanout,指了也没有用.
             }
             var consumer = new EventingBasicConsumer(channel);
             consumer.Received += (sender, e) =>
             {
                 var body = e.Body;
-                var json = Encoding.UTF8.GetString(body);
+                var json = Encoding.UTF8.GetString(body.ToArray());
                 callback(SerializeMemoryHelper.JsonDeserialize<TMessage>(json));
                 channel.BasicAck(e.DeliveryTag, multiple: false);
             };
-            channel.BasicConsume(queue: this.queueName,
-                                 noAck: false,
+            channel.BasicConsume(queue: queueName,
+                                 autoAck: true,
                                  consumer: consumer);
+            queueName = null;
             Console.WriteLine(" [*] Waiting for messages." + "To exit press CTRL+C");
 
         }
